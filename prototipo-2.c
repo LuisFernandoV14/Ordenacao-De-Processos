@@ -5,7 +5,7 @@
 
 typedef struct Processo {
 
-    //identificaÃ§Ã£o
+    // identificação
     int id;
     char numero[50];
 
@@ -13,12 +13,12 @@ typedef struct Processo {
     int mes;
     int ano;
     int dia;
-    // horÃ¡rio que o processo foi aberto
+    // horário que o processo foi aberto
     int horas;
     int minutos;
     float segundos;        
     
-    // identificaÃ§Ã£o especÃ­fica
+    // identificaçãoo específica
     int id_classe[5];
     int id_assunto[5];
     
@@ -58,19 +58,19 @@ int main(){
     if (novoArquivo == NULL) {printf("Erro ao abrir o arquivo \"teste.csv\".\n"); exit(1); }
     if (arquivoAuxiliar == NULL) {printf("Erro ao abrir o arquivo \"arquivo-Auxiliar.csv\".\n"); exit(1); }
     
-    // percorre atÃ© o final do arquivo contando as linhas (\n)
+    // percorre ate o final do arquivo contando as linhas (\n)
     while((parametroDeLinha = fgetc(velhoArquivo)) != EOF) { if(parametroDeLinha == '\n') nmrDeLinhas++; } 
 
-    // volta para o inÃ­cio do arquivo
+    // volta para o inicio do arquivo
     rewind(velhoArquivo); 
-    // armazena o cabeÃ§alho
+    // armazena o cabecalho
     fscanf(velhoArquivo, "%[^\n]\n", header); 
 
-    // Declara dinamicamente dois vetores, um para todos os processos e um para todos "id_classe" Ãºnicos
+    // Declara dinamicamente dois vetores, um para todos os processos e um para todos "id_classe" Unicos
     PROCESSO *listaDeProcessos = (PROCESSO *) malloc (sizeof(PROCESSO) * nmrDeLinhas); 
     int *vetorDeIDs_Unicos = (int *) calloc (nmrDeLinhas, sizeof(int));
 
-    // Bota todos os processos em uma struct prÃ³pria
+    // Bota todos os processos em uma struct propria
     atribuirProcessosAStruct(velhoArquivo, listaDeProcessos, nmrDeLinhas);
     
 
@@ -92,7 +92,7 @@ int main(){
 
     } while( option = 'y');
 
-    // Evita vazamento de memÃ³ria
+    // Evita vazamento de memoria
     free(listaDeProcessos); free(vetorDeIDs_Unicos);
     fclose(arquivoAuxiliar); fclose(velhoArquivo); fclose(novoArquivo);
     
