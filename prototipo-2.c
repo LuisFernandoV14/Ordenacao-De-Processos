@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 typedef struct Processo {
 
-    //identificação
+    // identificação
     int id;
     char numero[50];
 
@@ -17,7 +18,7 @@ typedef struct Processo {
     int minutos;
     float segundos;        
     
-    // identificação específica
+    // identificaçãoo específica
     int id_classe[5];
     int id_assunto[5];
     
@@ -29,16 +30,22 @@ typedef struct Processo {
     
 } PROCESSO;
 
+int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *arquivoAlvo, int nmrDeLinhas, int escolha);
 void moverCursor(FILE *arquivo, size_t BytesVoltados);
 void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso);
 void limparArrays(PROCESSO *processo);
 void atribuirProcessosAStruct(FILE *arquivoBase, PROCESSO *vetorDeProcessos, int numeroDeLinhas);
 void copiarProcesso(PROCESSO *p1, PROCESSO *p2);
-void contarIDs_classeUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar);
+void contarIDs_ClasseUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar);
 void imprimirProcessoPorIdClasse(FILE *arquivoAlvo, PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas);
+void contarIDs_AssuntoUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar);
+void limparNumerosRepetidos(int *vetorDeIDs_Unicos);
 
 
 int main(){
+
+    setlocale(LC_ALL, "Portuguese");
+
     FILE *novoArquivo, *velhoArquivo, *arquivoAuxiliar;
     char parametroDeLinha, charDif, header[100];
     int nmrDeLinhas = 0; 
@@ -51,41 +58,77 @@ int main(){
     if (novoArquivo == NULL) {printf("Erro ao abrir o arquivo \"teste.csv\".\n"); exit(1); }
     if (arquivoAuxiliar == NULL) {printf("Erro ao abrir o arquivo \"arquivo-Auxiliar.csv\".\n"); exit(1); }
     
-    // percorre até o final do arquivo contando as linhas (\n)
+    // percorre ate o final do arquivo contando as linhas (\n)
     while((parametroDeLinha = fgetc(velhoArquivo)) != EOF) { if(parametroDeLinha == '\n') nmrDeLinhas++; } 
 
-    // volta para o início do arquivo
+    // volta para o inicio do arquivo
     rewind(velhoArquivo); 
-    // armazena o cabeçalho
+    // armazena o cabecalho
     fscanf(velhoArquivo, "%[^\n]\n", header); 
 
-    // Declara dinamicamente dois vetores, um para todos os processos e um para todos "id_classe" únicos
+    // Declara dinamicamente dois vetores, um para todos os processos e um para todos "id_classe" Unicos
     PROCESSO *listaDeProcessos = (PROCESSO *) malloc (sizeof(PROCESSO) * nmrDeLinhas); 
     int *vetorDeIDs_Unicos = (int *) calloc (nmrDeLinhas, sizeof(int));
 
-
-    fprintf(novoArquivo, "%s\n", header);
-
-
-    // Bota todos os processos em uma struct própria
+    // Bota todos os processos em uma struct propria
     atribuirProcessosAStruct(velhoArquivo, listaDeProcessos, nmrDeLinhas);
-    // Escreve todos os processos em um arquivo novo 
-    for (int i = 0; i < nmrDeLinhas; i++) {imprimirProcesso(novoArquivo, listaDeProcessos[i]);}
+    
 
-    // Preenche o vetor de "id_classe" unicos e imprime em um arquivo auxiliar
-    contarIDs_classeUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, arquivoAuxiliar);
-    printf("%d", vetorDeIDs_Unicos[0]);
-    for (int i = 1; vetorDeIDs_Unicos[i] > 0; i ++) { printf(", %d", vetorDeIDs_Unicos[i]);}
+    int erro; int escolha; char option = 'y';
+    do {
 
-    imprimirProcessoPorIdClasse(arquivoAuxiliar, listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas);
+        printf("\n\nEm qual ordem você deseja organizar o arquivo?\n\n\t 1 - Ordem Original\n\t 2 - Organizar por Id Classe\n\t 3 - Contar quantos Id Assuntos unico aparecem\nR:");
+        scanf("%d", &escolha);
+        getchar();
 
+        erro = escolherOrdem(listaDeProcessos, vetorDeIDs_Unicos, arquivoAuxiliar, nmrDeLinhas, escolha);
 
-    // Evita vazamento de memória
+        if (erro) {printf("\n\nOpção Inválida.");}
+
+        printf("\n\nDeseja trocar a ordem novamente? (y/n) \nR:");
+        fflush(stdin);
+        scanf("%c", &option);
+        getchar();
+
+    } while( option = 'y');
+
+    // Evita vazamento de memoria
     free(listaDeProcessos); free(vetorDeIDs_Unicos);
     fclose(arquivoAuxiliar); fclose(velhoArquivo); fclose(novoArquivo);
     
     return 0;
 }
+
+
+int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *arquivoAlvo, int nmrDeLinhas, int escolha) {
+
+    switch (escolha) {
+    
+    case 1: // Imprimir na ordem original
+        fprintf(arquivoAlvo, "id;numero;data_ajuizamento;id_classe;id_assunto;ano_eleicao\n");
+        for (int i = 0; i < nmrDeLinhas; i++) {imprimirProcesso(arquivoAlvo, listaDeProcessos[i]);}
+        return 0;
+    break;
+
+    case 2: // Organizar por id classe
+    contarIDs_ClasseUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, arquivoAlvo);
+    imprimirProcessoPorIdClasse(arquivoAlvo, listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas);
+        return 0;
+    break;
+
+    case 3: // Contar quantos id assuntos tem no arquivo
+    contarIDs_AssuntoUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, arquivoAlvo);
+        return 0;
+    break;
+
+    default:
+        return 1;
+    break;
+    
+    }
+
+}
+
 
 void moverCursor(FILE *arquivo, size_t BytesVoltados) { 
     fseek(arquivo, BytesVoltados, SEEK_CUR);
@@ -112,13 +155,13 @@ while (indice < numeroDeLinhas) {
             &vetorDeProcessos[indice].minutos,
             &vetorDeProcessos[indice].segundos);
 
-        // Verificar se o próximo caractere é aspas ou chave
+        // Verificar se o prÃ³ximo caractere Ã© aspas ou chave
         charDif = fgetc(arquivoBase);
         moverCursor(arquivoBase, -1);
         
-        if (charDif == '{') { // id_classe começa com {
+        if (charDif == '{') { // id_classe comeÃ§a com {
             char buffer[100];
-            // Verificar se é um único ID de classe ou múltiplos
+            // Verificar se Ã© um Ãºnico ID de classe ou mÃºltiplos
             fscanf(arquivoBase, "{%[^}]}", buffer);
             
             // Processar o buffer para extrair os valores
@@ -130,13 +173,13 @@ while (indice < numeroDeLinhas) {
                 i++;
             }
             
-            // Ler o próximo caractere após }
+            // Ler o prÃ³ximo caractere apÃ³s }
             charDif = fgetc(arquivoBase);
             moverCursor(arquivoBase, -1);
             
-            // Verificar se o próximo caractere é vírgula
+            // Verificar se o prÃ³ximo caractere Ã© vÃ­rgula
             if (charDif == ',') {
-                fgetc(arquivoBase); // consumir a vírgula
+                fgetc(arquivoBase); // consumir a vÃ­rgula
                 
                 // Verificar o tipo de id_assunto
                 charDif = fgetc(arquivoBase);
@@ -173,7 +216,7 @@ while (indice < numeroDeLinhas) {
 
                 }
             }
-        } else if (charDif == '"') { // id_classe começa com "
+        } else if (charDif == '"') { // id_classe comeÃ§a com "
             char buffer[100];
             fscanf(arquivoBase, "\"{%[^}]}\"", buffer);
             
@@ -186,10 +229,10 @@ while (indice < numeroDeLinhas) {
                 i++;
             }
             
-            // Ler o próximo caractere após "
+            // Ler o prÃ³ximo caractere apÃ³s "
             charDif = fgetc(arquivoBase);
             
-            // Verificar se o próximo caractere é vírgula
+            // Verificar se o prÃ³ximo caractere Ã© vÃ­rgula
             if (charDif == ',') {
                 // Verificar o tipo de id_assunto
                 charDif = fgetc(arquivoBase);
@@ -244,7 +287,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
 
     int i = 0;
     
-    // Parte comum da formatação para todos os tipos de linha
+    // Parte comum da formataÃ§Ã£o para todos os tipos de linha
     fprintf(arquivoAlvo, "%d,\"%s\",%04d-%02d-%02d %02d:%02d:%06.3f,",
         processoImpresso.id,
         processoImpresso.numero,
@@ -255,7 +298,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
         processoImpresso.minutos,
         processoImpresso.segundos);
     
-    // Formatação específica para cada tipo de linha
+    // FormataÃ§Ã£o especÃ­fica para cada tipo de linha
     switch (processoImpresso.tipoDeLinha) {
         case 1: // Formato simples: {id_classe},{id_assunto},ano
             fprintf(arquivoAlvo, "{%d},{%d},%d\n", 
@@ -269,7 +312,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
         case 2: // Formato: {id_classe},"{id_assunto1,id_assunto2,...}",ano
             fprintf(arquivoAlvo, "{%d},\"{", processoImpresso.id_classe[0]);
             
-            // Imprimir múltiplos id_assunto
+            // Imprimir mÃºltiplos id_assunto
             i = 0;
             while (processoImpresso.id_assunto[i+1] > 0) {
                 fprintf(arquivoAlvo, "%d,", processoImpresso.id_assunto[i]);
@@ -285,7 +328,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
         case 3: // Formato: "{id_classe1,id_classe2,...}",{id_assunto},ano
             fprintf(arquivoAlvo, "\"{");
             
-            // Imprimir múltiplos id_classe
+            // Imprimir mÃºltiplos id_classe
             i = 0;
             while (processoImpresso.id_classe[i+1] > 0) {
                 fprintf(arquivoAlvo, "%d,", processoImpresso.id_classe[i]);
@@ -302,7 +345,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
         case 4: // Formato: "{id_classe1,id_classe2,...}","{id_assunto1,id_assunto2,...}",ano
             fprintf(arquivoAlvo, "\"{");
             
-            // Imprimir múltiplos id_classe
+            // Imprimir mÃºltiplos id_classe
             i = 0;
             while (processoImpresso.id_classe[i+1] > 0) {
                 fprintf(arquivoAlvo, "%d,", processoImpresso.id_classe[i]);
@@ -310,7 +353,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso) {
             }
             fprintf(arquivoAlvo, "%d}\",\"{", processoImpresso.id_classe[i]);
             
-            // Imprimir múltiplos id_assunto
+            // Imprimir mÃºltiplos id_assunto
             i = 0;
             while (processoImpresso.id_assunto[i+1] > 0) {
                 fprintf(arquivoAlvo, "%d,", processoImpresso.id_assunto[i]);
@@ -355,7 +398,7 @@ void copiarProcesso(PROCESSO *p1, PROCESSO *p2) {
 
 }
 
-void contarIDs_classeUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar) {
+void contarIDs_ClasseUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar) {
 
     static int limiteInteracoes = 0;
     int indice = 0, k, l, seraSeRepete, enderecoVetor;
@@ -401,15 +444,103 @@ void contarIDs_classeUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, 
 
 }
 
+void contarIDs_AssuntoUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar) {
+
+    static int limiteInteracoes = 0;
+    int indice = 0, k, l, seraSeRepete, enderecoVetor;
+
+
+        while (indice < nmrDeLinhas){
+
+            k = 0, l = 0, seraSeRepete = 1, enderecoVetor = 0;
+
+            while( vetorDeProcessos[indice].id_assunto[k] > 0 ) {
+
+                while( l < limiteInteracoes) {
+
+                    if(  vetorDeProcessos[indice].id_assunto[k] == vetorDeIDs_Unicos[enderecoVetor]) {
+
+                        seraSeRepete = 0;
+
+                    }
+
+                    enderecoVetor++;
+                    l++;
+                }
+
+                if (seraSeRepete > 0) {
+
+
+                    //fprintf(auxiliar, "Linha: %d, ID: %d\n", indice + 1,vetorDeProcessos[indice].id_classe[k]);
+                    vetorDeIDs_Unicos[limiteInteracoes] = vetorDeProcessos[indice].id_assunto[k];
+                    limiteInteracoes = limiteInteracoes + 1;
+
+
+                }
+
+                k++;
+
+            }
+
+            indice++;
+
+        }
+
+        int tamanhoDoVetor = 0;
+
+        limparNumerosRepetidos(vetorDeIDs_Unicos);
+        while (vetorDeIDs_Unicos[tamanhoDoVetor] > 0) {tamanhoDoVetor++;}
+
+        fprintf(auxiliar, "Existem %d nÃºmeros de \"id_assunto\" Ãºnicos, sÃ£o eles: \n\n{%d}", tamanhoDoVetor, vetorDeIDs_Unicos[0]);
+        for(int i = 1; vetorDeIDs_Unicos[i] > 0; i++ ) {
+            if (i % 4 == 0) {
+
+                fprintf(auxiliar, "\n");
+                fprintf(auxiliar,"{%d}", vetorDeIDs_Unicos[i]);
+                continue;
+            }
+            
+            fprintf(auxiliar,"\t, {%d}", vetorDeIDs_Unicos[i]);
+        }
+
+}
+
+void limparNumerosRepetidos(int *vetorDeIDs_Unicos) {
+
+    int tamanhoDoVetor = 0;
+
+    while (vetorDeIDs_Unicos[tamanhoDoVetor] > 0) {tamanhoDoVetor++;}
+
+    printf("%d ", tamanhoDoVetor);
+
+    for (int i = 0; i < tamanhoDoVetor; i++) {
+        int repetido = vetorDeIDs_Unicos[i]; 
+
+        if (repetido == 0) continue;
+
+        for (int j = i + 1; j < tamanhoDoVetor; j++) {
+
+            if (repetido == vetorDeIDs_Unicos[j]) {
+              
+                vetorDeIDs_Unicos[j] = vetorDeIDs_Unicos[tamanhoDoVetor - 1];
+                vetorDeIDs_Unicos[tamanhoDoVetor - 1] = 0;
+                tamanhoDoVetor--;
+                j--;
+
+            }
+        }
+    }
+}
+
 void imprimirProcessoPorIdClasse(FILE *arquivoAlvo, PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas) {
     int j = 0, contadorDeProcessos = 0;;
     
+    limparNumerosRepetidos(vetorDeIDs_Unicos);
+
     while (vetorDeIDs_Unicos[j] > 0) {
         int id_atual = vetorDeIDs_Unicos[j];
         contadorDeProcessos = 0;
-        
-        if(j == 13) {j++; continue;}
-        
+
         fprintf(arquivoAlvo, "--------------------------------------------------------------------------------\n");
         fprintf(arquivoAlvo, "\n\tProcessos com ID_Classe {%d}:\t\n\n", id_atual);
         
@@ -428,6 +559,6 @@ void imprimirProcessoPorIdClasse(FILE *arquivoAlvo, PROCESSO *listaDeProcessos, 
         j++;
 
         fprintf(arquivoAlvo, "\n\tQuantidade de processos com ID_Classe {%d}: %d\t\n\n", id_atual, contadorDeProcessos);
-        fprintf(arquivoAlvo, "--------------------------------------------------------------------------------\n");
+        fprintf(arquivoAlvo, "--------------------------------------------------------------------------------\n\n");
     }
 }
