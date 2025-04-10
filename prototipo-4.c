@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "PROCESSO.h"
 
 int main(){
@@ -35,7 +32,12 @@ int main(){
     * Queira testar, tire os comentarios, uma funcao por vez
     */ 
 
+
+    // Contar a quanto tempo um processo esta em tramitacao --------------- 
+    /* imprimirdias(listaDeProcessos, nmrDeLinhas, novoArquivo); */
+    // --------------------------------------------------------------------
     
+
     // Listar processos com mais de um id assunto ------------------------- 
     /* listarProcessosComMaisDeUmAssunto(listaDeProcessos, nmrDeLinhas, novoArquivo); */
     // --------------------------------------------------------------------
@@ -80,3 +82,6 @@ int main(){
     return 0;
 
 }
+
+
+
