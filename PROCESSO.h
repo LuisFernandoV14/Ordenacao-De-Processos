@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <locale.h>
+#include <time.h>
 
 typedef struct Processo
 {
@@ -47,6 +48,9 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso);
 void limparArrays(PROCESSO *processo);
 void atribuirProcessosAStruct(FILE *velhoArquivo, PROCESSO *listaDeProcessos, int nmrDeLinhas);
 void listarProcessosComMaisDeUmAssunto(PROCESSO *lista, int totalProcessos, FILE *arquivoNovo);
+time_t converterparaTempot(PROCESSO processo);
+int contardias(PROCESSO processo);
+void imprimirdias(PROCESSO *lista, int tamanho,  FILE *arquivoAlvo);
 
 
 int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *arquivoAlvo, int nmrDeLinhas, int escolha)
@@ -572,5 +576,42 @@ void atribuirProcessosAStruct(FILE *velhoArquivo, PROCESSO *listaDeProcessos, in
 
 }
 
+time_t converterparaTempot(PROCESSO processo) {
+    struct tm t;
+    memset(&t, 0, sizeof(struct tm));
+    t.tm_mday = processo.dia;
+    t.tm_mon = processo.mes - 1;
+    t.tm_year = processo.ano - 1900;
+    t.tm_hour = 12;
+    return mktime(&t);
+}
+int contardias(PROCESSO processo) {
+    time_t t_data = converterparaTempot(processo);
+    time_t t_hoje = time(NULL);
+    double segundos = difftime(t_hoje, t_data);
+    return (int)(segundos / (60 * 60 * 24));
+}
 
+void imprimirdias(PROCESSO *lista, int tamanho,  FILE *arquivoAlvo) {
+    for (int i = 0; i < tamanho; i++) {
+
+        int dias = contardias(lista[i]);
+        int anos = 0; int mes = 0;
+
+        while (dias > 365) { anos += 1; dias -= 365;}
+        while (dias > 30) { mes += 1; dias -= 30;}
+
+        fprintf(arquivoAlvo, "Id: %d | Data: %02d-%02d-%04d | Tempo em tramitacão: ",
+        lista[i].id, lista[i].dia, lista[i].mes, lista[i].ano);
+
+        if (anos > 1) {fprintf(arquivoAlvo, "%d anos, ", anos);}
+        if (anos == 1) {fprintf(arquivoAlvo, "%d ano, ", anos);}
+
+        if (mes > 1) {fprintf(arquivoAlvo, "%d meses e ", mes);}
+        if (mes == 1) {fprintf(arquivoAlvo, "%d mes e ", mes);}
+
+        if (dias == 1) {fprintf(arquivoAlvo, "%d dia \n", dias);}
+        else fprintf(arquivoAlvo, "%d dias \n", dias);
+    }
+}
 #endif
