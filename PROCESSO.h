@@ -8,6 +8,13 @@
 #include <locale.h>
 #include <time.h>
 
+#define pausarLeitura system("pause")
+#ifdef _WIN32
+#define limparTela system("cls")
+#else
+#define limparTela system("clear")
+#endif
+
 typedef struct Processo
 {
 
@@ -36,7 +43,8 @@ typedef struct Processo
 
 } PROCESSO;
 
-int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *arquivoAlvo, int nmrDeLinhas, int escolha);
+int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *novoArquivo, int nmrDeLinhas, int escolha);
+int contardias(PROCESSO processo);
 void copiarProcesso(PROCESSO *destino, PROCESSO *origem);
 void contarIDs_ClasseUnicos(PROCESSO *vetorDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas, FILE *auxiliar);
 void imprimirProcessoPorIdClasse(FILE *arquivoAlvo, PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, int nmrDeLinhas);
@@ -48,56 +56,92 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso);
 void limparArrays(PROCESSO *processo);
 void atribuirProcessosAStruct(FILE *velhoArquivo, PROCESSO *listaDeProcessos, int nmrDeLinhas);
 void listarProcessosComMaisDeUmAssunto(PROCESSO *lista, int totalProcessos, FILE *arquivoNovo);
+void imprimirdias(PROCESSO *lista, int tamanho, FILE *arquivoAlvo);
+void organizarPorData(PROCESSO *lista, int nmrDeLinhas, FILE *arquivoAlvo);
 time_t converterparaTempot(PROCESSO processo);
-int contardias(PROCESSO processo);
-void imprimirdias(PROCESSO *lista, int tamanho,  FILE *arquivoAlvo);
 
 
-int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *arquivoAlvo, int nmrDeLinhas, int escolha)
+int escolherOrdem(PROCESSO *listaDeProcessos, int *vetorDeIDs_Unicos, FILE *novoArquivo, int nmrDeLinhas, int escolha)
 {
 
     switch (escolha)
     {
 
-    case 1: // Imprimir na ordem original
-        fprintf(arquivoAlvo, "id;numero;data_ajuizamento;id_classe;id_assunto;ano_eleicao\n");
-        for (int i = 0; i < nmrDeLinhas; i++)
-        {
-            imprimirProcesso(arquivoAlvo, listaDeProcessos[i]);
-        }
+    case 1: // Impressao dos processos organizados por id (crescente) -------------
+    {   PROCESSO *listaDeProcessosOrdenada = (PROCESSO *) malloc (sizeof(PROCESSO) * nmrDeLinhas + 1);
+        
+        for(int i = 0; i < nmrDeLinhas; i++) {copiarProcesso(&listaDeProcessosOrdenada[i], &listaDeProcessos[i]);}
+        listaDeProcessosOrdenada[nmrDeLinhas].id = 0;
+        
+        ordenarVetorPorIdCrescente(listaDeProcessosOrdenada, nmrDeLinhas);
+        fprintf(novoArquivo,"id;numero;data_ajuizamento;id_classe;id_assunto;ano_eleicao\n");
+        for (int i = 0; i < nmrDeLinhas; i++) {imprimirProcesso(novoArquivo, listaDeProcessosOrdenada[i]);}     
+    
+        printf("\n\nArquivo organizado por numero de ID! (crescente)");            }
         return 0;
-        break;
+    break; // ---------------------------------------------------------------------
+    
 
-    case 2: // Organizar por id classe
-        contarIDs_ClasseUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, arquivoAlvo);
-        imprimirProcessoPorIdClasse(arquivoAlvo, listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas);
+
+    case 2: // Ordenar pela data (decrescente) ------------------------------------ 
+        fprintf(novoArquivo, "id;numero;data_ajuizamento;id_classe;id_assunto;ano_eleicao\n");
+        organizarPorData(listaDeProcessos, nmrDeLinhas, novoArquivo);
+        
+        printf("\n\nArquivo organizado pela data de ajuizamento! (decrescente)");
         return 0;
-        break;
+    break; // ---------------------------------------------------------------------
 
-    case 3: // Contar quantos id assuntos tem no arquivo
-        contarIDs_AssuntoUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, arquivoAlvo);
+
+
+    case 3: // Impressao dos processos organizados por id classe ------------------
+        contarIDs_ClasseUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, novoArquivo);
+        imprimirProcessoPorIdClasse(novoArquivo, listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas);
+
+        printf("\n\nArquivo organizado por ID da classe!");
         return 0;
-        break;
+    break; // ---------------------------------------------------------------------
+        
 
-    case 4: // Organizar por id, do menor para o maior
-    {
-        PROCESSO *listaDeProcessosOrdenada = (PROCESSO *)malloc(sizeof(PROCESSO) * nmrDeLinhas);
-        for (int i = 0; i < nmrDeLinhas; i++)
-        {
-            copiarProcesso(&listaDeProcessosOrdenada[i], &listaDeProcessos[i]);
-        }
-        // ordenarVetorPorIdCrescente(listaDeProcessosOrdenada);
-        for (int i = 0; i < nmrDeLinhas; i++)
-        {
-            imprimirProcesso(arquivoAlvo, listaDeProcessosOrdenada[i]);
-        }
+
+    case 4: // Contar quandos id assunto tem no arquivo e imprimi-los -------------
+        contarIDs_AssuntoUnicos(listaDeProcessos, vetorDeIDs_Unicos, nmrDeLinhas, novoArquivo);
+        
+        printf("\n\nTodos os numeros unicos de ID para os Assuntos foram listados!");
         return 0;
-    }
-    break;
+    break; // ---------------------------------------------------------------------
+             
+    
 
+    case 5: // Listar processos com mais de um id assunto ------------------------- 
+        listarProcessosComMaisDeUmAssunto(listaDeProcessos, nmrDeLinhas, novoArquivo); 
+                
+        printf("\n\nTodos processos com mais de um Assunto foram listados!");
+        return 0;
+    break; // ---------------------------------------------------------------------
+
+
+
+    case 6: // Contar a quanto tempo um processo esta em tramitacao ---------------
+        imprimirdias(listaDeProcessos, nmrDeLinhas, novoArquivo);
+        
+        printf("\n\nArquivo organizado por tempo em tramitaçao!");
+        return 0;
+    break; // ---------------------------------------------------------------------
+
+    case 7: // Imprimir na ordem original do arquivo base -------------------------
+        fprintf(novoArquivo, "id;numero;data_ajuizamento;id_classe;id_assunto;ano_eleicao\n");
+        for (int i = 0; i < nmrDeLinhas; i++) {imprimirProcesso(novoArquivo, listaDeProcessos[i]);} 
+        
+        printf("\n\nA ordem original do arquivo foi restaurada!");
+        return 0;
+    break; // ---------------------------------------------------------------------
+
+
+
+    // Quando da erro
     default:
         return 1;
-        break;
+    break;
     }
 }
 
@@ -116,13 +160,15 @@ void copiarProcesso(PROCESSO *destino, PROCESSO *origem)
     destino->ano_eleicao = origem->ano_eleicao;
     destino->tipoDeLinha = origem->tipoDeLinha;
 
-    while (origem->id_classe[i] > 0) {
+    while (origem->id_classe[i] > 0)
+    {
         destino->id_classe[i] = origem->id_classe[i];
         i++;
     }
     destino->id_classe[i] = 0; // Finalizar com 0
 
-    while (origem->id_assunto[j] > 0) {
+    while (origem->id_assunto[j] > 0)
+    {
         destino->id_assunto[j] = origem->id_assunto[j];
         j++;
     }
@@ -304,13 +350,16 @@ void imprimirProcessoPorIdClasse(FILE *arquivoAlvo, PROCESSO *listaDeProcessos, 
     }
 }
 
-void ordenarVetorPorIdCrescente(PROCESSO *listaDeProcessos, int nmrDeProcessos) 
+void ordenarVetorPorIdCrescente(PROCESSO *listaDeProcessos, int nmrDeProcessos)
 {
     PROCESSO aux;
 
-    for (int i = 0; i < nmrDeProcessos - 1; i++) {
-        for (int j = i + 1; j < nmrDeProcessos; j++) {
-            if (listaDeProcessos[i].id > listaDeProcessos[j].id) {
+    for (int i = 0; i < nmrDeProcessos - 1; i++)
+    {
+        for (int j = i + 1; j < nmrDeProcessos; j++)
+        {
+            if (listaDeProcessos[i].id > listaDeProcessos[j].id)
+            {
                 copiarProcesso(&aux, &listaDeProcessos[i]);
                 copiarProcesso(&listaDeProcessos[i], &listaDeProcessos[j]);
                 copiarProcesso(&listaDeProcessos[j], &aux);
@@ -392,7 +441,7 @@ void imprimirProcesso(FILE *arquivoAlvo, PROCESSO processoImpresso)
         while (processoImpresso.id_assunto[i + 1] > 0)
         {
             fprintf(arquivoAlvo, "%d,", processoImpresso.id_assunto[i]);
-            i++;   
+            i++;
         }
         fprintf(arquivoAlvo, "%d}\",%d\n",
                 processoImpresso.id_assunto[i],
@@ -417,7 +466,7 @@ void limparArrays(PROCESSO *processo)
 
 void listarProcessosComMaisDeUmAssunto(PROCESSO *lista, int totalProcessos, FILE *arquivoNovo)
 {
-    fprintf(arquivoNovo,"Processos com mais de um assunto:\n\n");
+    fprintf(arquivoNovo, "Processos com mais de um assunto:\n\n");
 
     for (int i = 0; i < totalProcessos; i++)
     {
@@ -430,153 +479,168 @@ void listarProcessosComMaisDeUmAssunto(PROCESSO *lista, int totalProcessos, FILE
 
         if (contador > 1)
         {
-            fprintf(arquivoNovo,"Linha: %d : ", i+1); 
+            fprintf(arquivoNovo, "Linha: %d : ", i + 1);
             imprimirProcesso(arquivoNovo, lista[i]);
         }
     }
 }
 
-void atribuirProcessosAStruct(FILE *velhoArquivo, PROCESSO *listaDeProcessos, int nmrDeLinhas){
-    
-    int indice = 0; char charDif;
+void atribuirProcessosAStruct(FILE *velhoArquivo, PROCESSO *listaDeProcessos, int nmrDeLinhas)
+{
 
-    while (indice < nmrDeLinhas) {
-        
+    int indice = 0;
+    char charDif;
+
+    while (indice < nmrDeLinhas)
+    {
+
         // Inicializar arrays com zeros
         limparArrays(&listaDeProcessos[indice]);
 
         // Ler parte comum do registro
         fscanf(velhoArquivo, "%d,\"%[^\"]\",%d-%d-%d %d:%d:%f,",
-            &listaDeProcessos[indice].id,
-            listaDeProcessos[indice].numero,
-            &listaDeProcessos[indice].ano,
-            &listaDeProcessos[indice].mes,
-            &listaDeProcessos[indice].dia,
-            &listaDeProcessos[indice].horas,
-            &listaDeProcessos[indice].minutos,
-            &listaDeProcessos[indice].segundos);
+               &listaDeProcessos[indice].id,
+               listaDeProcessos[indice].numero,
+               &listaDeProcessos[indice].ano,
+               &listaDeProcessos[indice].mes,
+               &listaDeProcessos[indice].dia,
+               &listaDeProcessos[indice].horas,
+               &listaDeProcessos[indice].minutos,
+               &listaDeProcessos[indice].segundos);
 
         // Verificar se o próximo caractere é aspas ou chave
         charDif = fgetc(velhoArquivo);
         moverCursor(velhoArquivo, -1);
-        
-        if (charDif == '{') { // id_classe começa com {
+
+        if (charDif == '{')
+        { // id_classe começa com {
             char buffer[100];
             // Verificar se é um único ID de classe ou múltiplos
             fscanf(velhoArquivo, "{%[^}]}", buffer);
-            
+
             // Processar o buffer para extrair os valores
             char *token = strtok(buffer, ",");
             int i = 0;
-            while (token != NULL && i < 5) {
+            while (token != NULL && i < 5)
+            {
                 listaDeProcessos[indice].id_classe[i] = atoi(token);
                 token = strtok(NULL, ",");
                 i++;
             }
-            
+
             // Ler o próximo caractere após }
             charDif = fgetc(velhoArquivo);
             moverCursor(velhoArquivo, -1);
-            
+
             // Verificar se o próximo caractere é vírgula
-            if (charDif == ',') {
+            if (charDif == ',')
+            {
                 fgetc(velhoArquivo); // consumir a vírgula
-                
+
                 // Verificar o tipo de id_assunto
                 charDif = fgetc(velhoArquivo);
                 moverCursor(velhoArquivo, -1);
-                
-                if (charDif == '{') { // Formato: {id_assunto}
+
+                if (charDif == '{')
+                { // Formato: {id_assunto}
                     fscanf(velhoArquivo, "{%[^}]},%d\n", buffer, &listaDeProcessos[indice].ano_eleicao);
-                    
+
                     // Processar o buffer para extrair os valores
                     token = strtok(buffer, ",");
                     i = 0;
-                    while (token != NULL && i < 5) {
+                    while (token != NULL && i < 5)
+                    {
                         listaDeProcessos[indice].id_assunto[i] = atoi(token);
                         token = strtok(NULL, ",");
                         i++;
                     }
 
                     listaDeProcessos[indice].tipoDeLinha = 1;
-
-
-                } else if (charDif == '"') { // Formato: "{id_assunto}"
+                }
+                else if (charDif == '"')
+                { // Formato: "{id_assunto}"
                     fscanf(velhoArquivo, "\"{%[^}]}\",%d\n", buffer, &listaDeProcessos[indice].ano_eleicao);
-                    
+
                     // Processar o buffer para extrair os valores
                     token = strtok(buffer, ",");
                     i = 0;
-                    while (token != NULL && i < 5) {
+                    while (token != NULL && i < 5)
+                    {
                         listaDeProcessos[indice].id_assunto[i] = atoi(token);
                         token = strtok(NULL, ",");
                         i++;
                     }
 
                     listaDeProcessos[indice].tipoDeLinha = 2;
-
                 }
             }
-        } else if (charDif == '"') { // id_classe começa com "
+        }
+        else if (charDif == '"')
+        { // id_classe começa com "
             char buffer[100];
             fscanf(velhoArquivo, "\"{%[^}]}\"", buffer);
-            
+
             // Processar o buffer para extrair os valores de id_classe
             char *token = strtok(buffer, ",");
             int i = 0;
-            while (token != NULL && i < 5) {
+            while (token != NULL && i < 5)
+            {
                 listaDeProcessos[indice].id_classe[i] = atoi(token);
                 token = strtok(NULL, ",");
                 i++;
             }
-            
+
             // Ler o próximo caractere após "
             charDif = fgetc(velhoArquivo);
-            
+
             // Verificar se o próximo caractere é vírgula
-            if (charDif == ',') {
+            if (charDif == ',')
+            {
                 // Verificar o tipo de id_assunto
                 charDif = fgetc(velhoArquivo);
                 moverCursor(velhoArquivo, -1);
-                
-                if (charDif == '{') { // Formato: ,{id_assunto}
+
+                if (charDif == '{')
+                { // Formato: ,{id_assunto}
                     fscanf(velhoArquivo, "{%[^}]},%d\n", buffer, &listaDeProcessos[indice].ano_eleicao);
-                    
+
                     // Processar o buffer para extrair os valores
                     token = strtok(buffer, ",");
                     i = 0;
-                    while (token != NULL && i < 5) {
+                    while (token != NULL && i < 5)
+                    {
                         listaDeProcessos[indice].id_assunto[i] = atoi(token);
                         token = strtok(NULL, ",");
                         i++;
                     }
 
                     listaDeProcessos[indice].tipoDeLinha = 3;
-
-                } else if (charDif == '"') { // Formato: ,"{id_assunto}"
+                }
+                else if (charDif == '"')
+                { // Formato: ,"{id_assunto}"
                     fscanf(velhoArquivo, "\"{%[^}]}\",%d\n", buffer, &listaDeProcessos[indice].ano_eleicao);
-                    
+
                     // Processar o buffer para extrair os valores
                     token = strtok(buffer, ",");
                     i = 0;
-                    while (token != NULL && i < 5) {
+                    while (token != NULL && i < 5)
+                    {
                         listaDeProcessos[indice].id_assunto[i] = atoi(token);
                         token = strtok(NULL, ",");
                         i++;
                     }
 
                     listaDeProcessos[indice].tipoDeLinha = 4;
-
                 }
             }
         }
-        
+
         indice++;
     }
-
 }
 
-time_t converterparaTempot(PROCESSO processo) {
+time_t converterparaTempot(PROCESSO processo)
+{
     struct tm t;
     memset(&t, 0, sizeof(struct tm));
     t.tm_mday = processo.dia;
@@ -585,33 +649,118 @@ time_t converterparaTempot(PROCESSO processo) {
     t.tm_hour = 12;
     return mktime(&t);
 }
-int contardias(PROCESSO processo) {
+
+int contardias(PROCESSO processo)
+{
     time_t t_data = converterparaTempot(processo);
     time_t t_hoje = time(NULL);
     double segundos = difftime(t_hoje, t_data);
     return (int)(segundos / (60 * 60 * 24));
 }
 
-void imprimirdias(PROCESSO *lista, int tamanho,  FILE *arquivoAlvo) {
-    for (int i = 0; i < tamanho; i++) {
+void imprimirdias(PROCESSO *lista, int tamanho, FILE *arquivoAlvo)
+{
+    for (int i = 0; i < tamanho; i++)
+    {
 
         int dias = contardias(lista[i]);
-        int anos = 0; int mes = 0;
+        int anos = 0;
+        int mes = 0;
 
-        while (dias > 365) { anos += 1; dias -= 365;}
-        while (dias > 30) { mes += 1; dias -= 30;}
+        while (dias > 365)
+        {
+            anos += 1;
+            dias -= 365;
+        }
+        while (dias > 30)
+        {
+            mes += 1;
+            dias -= 30;
+        }
+        while (mes > 12)
+        {
+            anos += 1;
+            mes -= 12;
+        }
 
         fprintf(arquivoAlvo, "Id: %d | Data: %02d-%02d-%04d | Tempo em tramitacão: ",
-        lista[i].id, lista[i].dia, lista[i].mes, lista[i].ano);
+                lista[i].id, lista[i].dia, lista[i].mes, lista[i].ano);
 
-        if (anos > 1) {fprintf(arquivoAlvo, "%d anos, ", anos);}
-        if (anos == 1) {fprintf(arquivoAlvo, "%d ano, ", anos);}
+        if (anos > 1)
+        {
+            fprintf(arquivoAlvo, "%d anos, ", anos);
+        }
+        if (anos == 1)
+        {
+            fprintf(arquivoAlvo, "%d ano, ", anos);
+        }
 
-        if (mes > 1) {fprintf(arquivoAlvo, "%d meses e ", mes);}
-        if (mes == 1) {fprintf(arquivoAlvo, "%d mes e ", mes);}
+        if (mes > 1)
+        {
+            fprintf(arquivoAlvo, "%d meses e ", mes);
+        }
+        if (mes == 1)
+        {
+            fprintf(arquivoAlvo, "%d mes e ", mes);
+        }
 
-        if (dias == 1) {fprintf(arquivoAlvo, "%d dia \n", dias);}
-        else fprintf(arquivoAlvo, "%d dias \n", dias);
+        if (dias == 1)
+        {
+            fprintf(arquivoAlvo, "%d dia \n", dias);
+        }
+        else
+            fprintf(arquivoAlvo, "%d dias \n", dias);
     }
 }
+
+void organizarPorData(PROCESSO *lista, int nmrDeLinhas, FILE *arquivoAlvo) {
+    
+    PROCESSO *listaOrdenada = (PROCESSO *)malloc(sizeof(PROCESSO) * nmrDeLinhas);
+    
+    for (int i = 0; i < nmrDeLinhas; i++) { copiarProcesso(&listaOrdenada[i], &lista[i]);}
+    
+
+    for (int i = 0; i < nmrDeLinhas - 1; i++) {
+        for (int j = 0; j < nmrDeLinhas - i - 1; j++) {
+            
+            if (listaOrdenada[j].ano < listaOrdenada[j + 1].ano) {
+               
+                PROCESSO aux;
+
+                copiarProcesso(&aux, &listaOrdenada[j]);
+                copiarProcesso(&listaOrdenada[j], &listaOrdenada[j + 1]);
+                copiarProcesso(&listaOrdenada[j + 1], &aux);
+
+            } 
+            
+            else if (listaOrdenada[j].ano == listaOrdenada[j + 1].ano && 
+                     listaOrdenada[j].mes < listaOrdenada[j + 1].mes) {
+                
+                PROCESSO aux;
+
+                copiarProcesso(&aux, &listaOrdenada[j]);
+                copiarProcesso(&listaOrdenada[j], &listaOrdenada[j + 1]);
+                copiarProcesso(&listaOrdenada[j + 1], &aux);
+            }
+
+            else if (listaOrdenada[j].ano == listaOrdenada[j + 1].ano && 
+                     listaOrdenada[j].mes == listaOrdenada[j + 1].mes &&
+                     listaOrdenada[j].dia < listaOrdenada[j + 1].dia) {
+
+                PROCESSO aux;
+
+                copiarProcesso(&aux, &listaOrdenada[j]);
+                copiarProcesso(&listaOrdenada[j], &listaOrdenada[j + 1]);
+                copiarProcesso(&listaOrdenada[j + 1], &aux);
+           
+            }
+        
+        }
+    }
+    
+    for (int i = 0; i < nmrDeLinhas; i++) {imprimirProcesso(arquivoAlvo, listaOrdenada[i]);}
+    
+    free(listaOrdenada);
+}
+
 #endif
