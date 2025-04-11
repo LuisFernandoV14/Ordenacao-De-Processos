@@ -32,6 +32,11 @@ int main(){
     * Queira testar, tire os comentarios, uma funcao por vez
     */ 
 
+    // Ordenar pela data (decrescente) ------------------------------------ 
+    /* fprintf(novoArquivo, "%s\n", header);
+    organizarPorData(listaDeProcessos, nmrDeLinhas, novoArquivo); */
+    // --------------------------------------------------------------------
+    
 
     // Contar a quanto tempo um processo esta em tramitacao --------------- 
     /* imprimirdias(listaDeProcessos, nmrDeLinhas, novoArquivo); */
