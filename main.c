@@ -1,4 +1,4 @@
-#include "PROCESSO.h"
+#include "processo.h"
 
 int main(){
     
@@ -14,9 +14,9 @@ int main(){
 
     
     // Preparacao do Arquivo ----------------------------------------------
-    while((parametroDeLinha = fgetc(velhoArquivo)) != EOF) { if(parametroDeLinha == '\n') nmrDeLinhas++; } // percorre até o final do arquivo contando as linhas (\n)
-    rewind(velhoArquivo); // volta para o início do arquivo
-    fscanf(velhoArquivo, "%[^\n]\n", header); // armazena o cabeçalho
+    while((parametroDeLinha = fgetc(velhoArquivo)) != EOF) { if(parametroDeLinha == '\n') nmrDeLinhas++; } 
+    rewind(velhoArquivo);
+    fscanf(velhoArquivo, "%[^\n]\n", header);
 
     PROCESSO *listaDeProcessos = (PROCESSO *) malloc (sizeof(PROCESSO) * nmrDeLinhas);
     int *vetorDeIDs_Unicos = (int *) calloc (nmrDeLinhas, sizeof(int));
@@ -24,10 +24,11 @@ int main(){
     atribuirProcessosAStruct(velhoArquivo, listaDeProcessos, nmrDeLinhas);
     // --------------------------------------------------------------------
     
-    
 
-    // Programa em si -----------------------------------------------------
+    // Programa -----------------------------------------------------------
     char repetir; int operacao, error;
+
+    limparTela;
 
     printf("Bem vindo ao programa para organizar o arquivo judicial \"processo_043_202409032338.csv\" \n\n");
 
@@ -35,10 +36,9 @@ int main(){
 
 	pausarLeitura; limparTela;
 
-
     do{
-	    novoArquivo = fopen("arquivo de teste.csv", "w");
-	    if (novoArquivo == NULL) {printf("Erro ao abrir o arquivo \"teste.csv\"\n."); exit(1); }
+	    novoArquivo = fopen("Processos Judiciais Organizados.csv", "w");
+	    if (novoArquivo == NULL) {printf("Erro ao abrir o arquivo \"Processos Judiciais Organizados.csv\"\n."); exit(1); }
 	    
         printf("Em qual ordem voce deseja organizar o arquivo? Digite apenas o numero\n");
 
@@ -74,6 +74,8 @@ int main(){
 
     printf("Finalizando programa...\n\n");
     printf("Obrigado!");
+    pausarLeitura; limparTela;
+
     // --------------------------------------------------------------------
 
 
